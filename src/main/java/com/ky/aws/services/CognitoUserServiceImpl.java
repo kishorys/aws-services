@@ -1,6 +1,8 @@
 
 package com.ky.aws.services;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,12 +14,15 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import com.amazonaws.services.cognitoidp.model.AttributeType;
 import com.amazonaws.services.cognitoidp.model.AuthFlowType;
 import com.amazonaws.services.cognitoidp.model.ChallengeNameType;
+import com.amazonaws.services.cognitoidp.model.ConfirmSignUpRequest;
 import com.amazonaws.services.cognitoidp.model.InitiateAuthRequest;
 import com.amazonaws.services.cognitoidp.model.InitiateAuthResult;
 import com.amazonaws.services.cognitoidp.model.RespondToAuthChallengeRequest;
 import com.amazonaws.services.cognitoidp.model.RespondToAuthChallengeResult;
+import com.amazonaws.services.cognitoidp.model.SignUpRequest;
 import com.ky.aws.components.CognitoIdentityProvider;
 import com.ky.aws.dto.AuthDto;
 
@@ -38,6 +43,28 @@ public class CognitoUserServiceImpl implements CognitoUserService
 
     @Value("${aws.clientapp_id}")
     String clientAppId;
+
+    @Override
+    public void signUp(final String userName, final String password, final Map<String, String> options)
+    {
+        final SignUpRequest signUpRequest =
+            new SignUpRequest().withClientId(clientAppId).withUsername(userName).withPassword(password);
+        final Collection<AttributeType> userAttributes = new ArrayList<AttributeType>();
+        options.forEach((key, val) -> {
+            final AttributeType attributeType = new AttributeType().withName(key).withValue(val);
+            userAttributes.add(attributeType);
+        });
+        signUpRequest.setUserAttributes(userAttributes);
+        identityProvider.getValue().signUp(signUpRequest);
+    }
+
+    @Override
+    public void confirmSignUp(final String userName, final String verificationCode)
+    {
+        final ConfirmSignUpRequest confirmSignUpRequest = new ConfirmSignUpRequest().withClientId(clientAppId)
+            .withUsername(userName).withConfirmationCode(verificationCode);
+        identityProvider.getValue().confirmSignUp(confirmSignUpRequest);
+    }
 
     @Override
     public AuthDto authenticate(final Map<String, String> options, final String session,
